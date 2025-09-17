@@ -7,19 +7,40 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<Owner> Owners => Set<Owner>();
     public DbSet<Car> Cars => Set<Car>();
+
+    public DbSet<Claim> Claims => Set<Claim>();
     public DbSet<InsurancePolicy> Policies => Set<InsurancePolicy>();
+
+    public DbSet<PolicyExpirationLog> PolicyExpirationLogs => Set<PolicyExpirationLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Car>()
             .HasIndex(c => c.Vin)
-            .IsUnique(false); // TODO: set true and handle conflicts
+            .IsUnique(true); 
 
-        modelBuilder.Entity<InsurancePolicy>()
-            .Property(p => p.StartDate)
-            .IsRequired();
+        modelBuilder.Entity<InsurancePolicy>(e =>
+        {
+            e.Property(p => p.StartDate).IsRequired(); 
+            e.Property(p => p.EndDate).IsRequired();     
+        });
 
-        // EndDate intentionally left nullable for a later task
+        modelBuilder.Entity<Claim>(e =>
+        {
+            e.Property(c => c.Description).IsRequired();
+            e.Property(c => c.ClaimDate).IsRequired();
+            e.HasOne(c => c.Car).WithMany().HasForeignKey(c => c.CarId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PolicyExpirationLog>(e =>
+        {
+            e.HasIndex(x => x.PolicyId).IsUnique(); 
+            e.HasOne(x => x.Policy)
+                .WithMany()
+                .HasForeignKey(x => x.PolicyId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }
 
@@ -41,7 +62,7 @@ public static class SeedData
 
         db.Policies.AddRange(
             new InsurancePolicy { CarId = car1.Id, Provider = "Allianz", StartDate = new DateOnly(2024,1,1), EndDate = new DateOnly(2024,12,31) },
-            new InsurancePolicy { CarId = car1.Id, Provider = "Groupama", StartDate = new DateOnly(2025,1,1), EndDate = null }, // open-ended on purpose
+            new InsurancePolicy { CarId = car1.Id, Provider = "Groupama", StartDate = new DateOnly(2025,1,1), EndDate = new DateOnly(2025, 12, 31) },
             new InsurancePolicy { CarId = car2.Id, Provider = "Allianz", StartDate = new DateOnly(2025,3,1), EndDate = new DateOnly(2025,9,30) }
         );
         db.SaveChanges();
