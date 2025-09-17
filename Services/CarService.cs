@@ -8,6 +8,46 @@ namespace CarInsurance.Api.Services;
 
 public class CarService(AppDbContext db)
 {
+    public async Task<HistoryResponse> GetHistoryAsync(long carId)
+    {
+        var car = await _db.Cars.AsNoTracking().FirstOrDefaultAsync(c => c.Id == carId);
+        if (car is null) throw new KeyNotFoundException();
+
+        var policies = await _db.Policies.AsNoTracking()
+            .Where(p => p.CarId == carId)
+            .ToListAsync();
+
+        var claims = await _db.Claims.AsNoTracking()
+            .Where(c => c.CarId == carId)
+            .ToListAsync();
+
+        var items = new List<HistoryItem>(policies.Count + claims.Count);
+
+        foreach (var p in policies)
+        {
+            items.Add(new HistoryItem(
+                type: "policy",
+                date: p.StartDate.ToString("yyyy-MM-dd"),
+                endDate: p.EndDate.ToString("yyyy-MM-dd"),
+                provider: p.Provider
+            ));
+        }
+
+        foreach (var c in claims)
+        {
+            items.Add(new HistoryItem(
+                type: "claim",
+                date: c.ClaimDate.ToString("yyyy-MM-dd"),
+                description: c.Description,
+                amount: c.Amount
+            ));
+        }
+
+        var ordered = items.OrderBy(i => i.date).ThenBy(i => i.type).ToList();
+        return new HistoryResponse(carId, ordered);
+    }
+
+
     public static DateOnly ParseStrictDate(string dateStr)
     {
         return DateOnly.ParseExact(dateStr, "yyyy-MM-dd", CultureInfo.InvariantCulture);
