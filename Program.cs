@@ -2,6 +2,7 @@ using CarInsurance.Api.Data;
 using CarInsurance.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using CarInsurance.Api.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,8 @@ builder.Services.AddControllers()
     {
         o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
+
+builder.Services.AddHostedService<PolicyExpirationMonitor>();
 
 var app = builder.Build();
 

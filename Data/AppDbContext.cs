@@ -11,11 +11,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Claim> Claims => Set<Claim>();
     public DbSet<InsurancePolicy> Policies => Set<InsurancePolicy>();
 
+    public DbSet<PolicyExpirationLog> PolicyExpirationLogs => Set<PolicyExpirationLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Car>()
             .HasIndex(c => c.Vin)
-            .IsUnique(false); // TODO: set true and handle conflicts
+            .IsUnique(true); 
 
         modelBuilder.Entity<InsurancePolicy>(e =>
         {
@@ -28,6 +30,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(c => c.Description).IsRequired();
             e.Property(c => c.ClaimDate).IsRequired();
             e.HasOne(c => c.Car).WithMany().HasForeignKey(c => c.CarId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PolicyExpirationLog>(e =>
+        {
+            e.HasIndex(x => x.PolicyId).IsUnique(); 
+            e.HasOne(x => x.Policy)
+                .WithMany()
+                .HasForeignKey(x => x.PolicyId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }
