@@ -6,6 +6,7 @@ namespace CarInsurance.Api.Controllers;
 
 [ApiController]
 [Route("api")]
+
 public class CarsController(CarService service) : ControllerBase
 {
     private readonly CarService _service = service;
@@ -30,4 +31,30 @@ public class CarsController(CarService service) : ControllerBase
             return NotFound();
         }
     }
+
+    [HttpPost]
+    [Route("cars/{carId:long}/claims")]
+    public async Task<ActionResult<ClaimResponse>> RegisterClaim(
+    long carId,
+    [FromQuery] string claimDate,
+    [FromQuery] string description,
+    [FromQuery] decimal amount)
+    {
+        if (!DateOnly.TryParse(claimDate, out _))
+            return BadRequest("Invalid date format. Use YYYY-MM-DD.");
+        if (string.IsNullOrWhiteSpace(description))
+            return BadRequest("Description is required.");
+        if (amount < 0)
+            return BadRequest("Amount must be non-negative.");
+
+        try
+        {
+            var resp = await _service.RegisterClaimAsync(carId, claimDate, description, amount);
+            return Created("", resp);
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
 }
+
+

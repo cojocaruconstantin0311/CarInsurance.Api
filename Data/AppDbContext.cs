@@ -7,6 +7,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<Owner> Owners => Set<Owner>();
     public DbSet<Car> Cars => Set<Car>();
+
+    public DbSet<Claim> Claims => Set<Claim>();
     public DbSet<InsurancePolicy> Policies => Set<InsurancePolicy>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -19,6 +21,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.Property(p => p.StartDate).IsRequired(); 
             e.Property(p => p.EndDate).IsRequired();     
+        });
+
+        modelBuilder.Entity<Claim>(e =>
+        {
+            e.Property(c => c.Description).IsRequired();
+            e.Property(c => c.ClaimDate).IsRequired();
+            e.HasOne(c => c.Car).WithMany().HasForeignKey(c => c.CarId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
